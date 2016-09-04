@@ -104,7 +104,7 @@ prompt_pure_set_title() {
 
 prompt_pure_preexec() {
 	# attempt to detect and prevent prompt_pure_async_git_fetch from interfering with user initiated git or hub fetch
-	[[ $2 =~ (git|hub)\ .*(pull|fetch) ]] && async_flush_jobs 'prompt_pure'
+	# [[ $2 =~ (git|hub)\ .*(pull|fetch) ]] && async_flush_jobs 'prompt_pure'
 
 	prompt_pure_cmd_timestamp=$EPOCHSECONDS
 
@@ -130,15 +130,16 @@ prompt_pure_preprompt_render() {
 	[[ -n ${prompt_pure_cmd_timestamp+x} && "$1" != "precmd" ]] && return
 
 	# set color for git branch/dirty status, change color if dirty checking has been delayed
-	local git_color=242
-	[[ -n ${prompt_pure_git_last_dirty_check_timestamp+x} ]] && git_color=red
+	# local git_color=242
+	# [[ -n ${prompt_pure_git_last_dirty_check_timestamp+x} ]] && git_color=red
 
 	# construct preprompt, beginning with path
-	local preprompt="%F{blue}%~%f"
+	#local preprompt="%F{blue}%~%f"
+	local preprompt="%F{31}%~%f"
 	# git info
-	preprompt+="%F{$git_color}${vcs_info_msg_0_}${prompt_pure_git_dirty}%f"
+	# preprompt+="%F{$git_color}${vcs_info_msg_0_}${prompt_pure_git_dirty}%f"
 	# git pull/push arrows
-	preprompt+="%F{cyan}${prompt_pure_git_arrows}%f"
+	# preprompt+="%F{cyan}${prompt_pure_git_arrows}%f"
 	# username and machine if applicable
 	preprompt+=$prompt_pure_username
 	# execution time
@@ -209,16 +210,16 @@ prompt_pure_precmd() {
 	prompt_pure_cmd_timestamp=
 
 	# check for git arrows
-	prompt_pure_check_git_arrows
+	#prompt_pure_check_git_arrows
 
 	# shows the full path in the title
 	prompt_pure_set_title 'expand-prompt' '%~'
 
 	# get vcs info
-	vcs_info
+	#vcs_info
 
 	# preform async git dirty check and fetch
-	prompt_pure_async_tasks
+	#prompt_pure_async_tasks
 
 	# print the preprompt
 	prompt_pure_preprompt_render "precmd"
@@ -315,6 +316,29 @@ prompt_pure_async_callback() {
 	esac
 }
 
+# https://github.com/topfunky/zsh-simple
+# vcs_info has some problems with git on jessie i.e. when rebasing
+git_cwd_info () {
+  GIT_REPO_PATH=$(git rev-parse --git-dir 2>/dev/null)
+  if [[ $GIT_REPO_PATH != '' && $GIT_REPO_PATH != '~' && $GIT_REPO_PATH != "$HOME/.git" ]]; then
+    GIT_BRANCH=$(git symbolic-ref -q HEAD | sed 's/refs\/heads\///')
+    GIT_COMMIT_ID=$(git rev-parse --short HEAD 2>/dev/null)
+    GIT_MODE=''
+    if [[ -e "$GIT_REPO_PATH/BISECT_LOG" ]]; then
+      GIT_MODE=" +bisect"
+    elif [[ -e "$GIT_REPO_PATH/MERGE_HEAD" ]]; then
+      GIT_MODE=" +merge"
+    elif [[ -e "$GIT_REPO_PATH/rebase" || -e "$GIT_REPO_PATH/rebase-apply" || -e "$GIT_REPO_PATH/rebase-merge" || -e "$GIT_REPO_PATH/../.dotest" ]]; then
+      GIT_MODE=" +rebase"
+    fi
+    GIT_DIRTY=""
+    if [[ "$GIT_REPO_PATH" != '.' && `git ls-files -m` != "" ]]; then
+      GIT_DIRTY="*"
+    fi
+    echo "${GIT_DIRTY}${GIT_BRANCH} ${GIT_COMMIT_ID}${GIT_MODE}"
+  fi
+}
+
 prompt_pure_setup() {
 	# prevent percentage showing up
 	# if output doesn't end with a newline
@@ -325,8 +349,8 @@ prompt_pure_setup() {
 	zmodload zsh/datetime
 	zmodload zsh/zle
 	autoload -Uz add-zsh-hook
-	autoload -Uz vcs_info
-	autoload -Uz async && async
+	#autoload -Uz vcs_info
+	#autoload -Uz async && async
 
 	add-zsh-hook precmd prompt_pure_precmd
 	add-zsh-hook preexec prompt_pure_preexec
@@ -354,7 +378,9 @@ prompt_pure_setup() {
 	[[ $UID -eq 0 ]] && prompt_pure_username=' %F{white}%n%f%F{242}@%m%f'
 
 	# prompt turns red if the previous command didn't exit with 0
-	PROMPT="%(?.%F{magenta}.%F{red})${PURE_PROMPT_SYMBOL:-❯}%f "
+	PROMPT="%(?.%F{white}.%F{red})${PURE_PROMPT_SYMBOL:-❯}%f "
+
+  RPROMPT='%F{white} $(git_cwd_info)%f'
 }
 
 prompt_pure_setup "$@"
